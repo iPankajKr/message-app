@@ -35,18 +35,26 @@ app.get('/', (req, res) => {
 
 io.on('connection', async (socket) => {
     console.log('a user connected');
-    socket.on('chat message', async (msg) => {
+    socket.on('chat message', async (msg, client_offset, callback) => {
         let result;
         try {
             // store the message in the database
-            result = await db.run('INSERT INTO messages (content) VALUES (?)', msg)
+            result = await db.run('INSERT INTO messages (content, client_offset) VALUES (?, ?)', msg, client_offset)
         }
         catch (e) {
-            // TODO handle the failure
+            if(e.errno === 19 /* SQLITE_CONSTRAINT */) {
+                // the message was already inserted, so we notify the client
+                callback();
+            }
+            else {
+                // nothing to do, let the client retry
+            }
             return;
         }
         // include the offset with the message
         io.emit('chat message', msg, result.lastID)
+        // acknowledge the event
+        callback();
     })
     
     if(!socket.recovered) {
