@@ -28,3 +28,6 @@ socket.io-client-*.js
 # OS-specific files
 Thumbs.db
 .DS_Store
+
+# Databases
+chat.db
